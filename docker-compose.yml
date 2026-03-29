@@ -15,17 +15,32 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # Your Research Agent (The Backend/Frontend)
-  research-agent:
+  # SERVICE 1: The API Engine (FastAPI)
+  backend:
     build: .
-    container_name: research_app
+    container_name: research_backend
     depends_on:
       - db
+    # Override the Dockerfile CMD to start the Backend
+    command: uvicorn backend.backend:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/research_logs
+    env_file:
+      - .env
+
+  # SERVICE 2: The User Interface (Streamlit)
+  frontend:
+    build: .
+    container_name: research_frontend
+    depends_on:
+      - backend
+    # This service uses the default CMD from the Dockerfile
     ports:
       - "8501:8501"
     environment:
-      - API_BASE_URL=http://localhost:8000
-      - DATABASE_URL=postgresql://user:password@db:5432/research_logs
+      - API_BASE_URL=http://backend:8000 # Internal Docker networking
     env_file:
       - .env
     volumes:
