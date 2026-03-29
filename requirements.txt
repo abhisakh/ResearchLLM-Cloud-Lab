@@ -40,3 +40,9 @@ databases                # Async DB support (if needed for FastAPI)
 # ------ Pytest ----------------------
 pytest
 pytest-asyncio
+
+# --- Database (Updated for PostgreSQL/AWS Support) ---
+sqlalchemy               # ORM for persistent data
+databases                # Async DB support
+psycopg2-binary          # PostgreSQL adapter for Python (No build deps required)
+pydantic-settings        # Professional environment & secrets management
