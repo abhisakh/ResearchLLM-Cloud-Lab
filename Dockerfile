@@ -6,9 +6,11 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies (required for FAISS and SQLite)
+# Added libpq-dev for PostgreSQL support
 RUN apt-get update && apt-get install -y \
     build-essential \
     libgomp1 \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
