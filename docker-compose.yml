@@ -1,14 +1,37 @@
-#version: '3.8'
+version: '3.8'
+
 services:
+  # New Database Service (The "Postgres" Requirement)
+  db:
+    image: postgres:15-alpine
+    container_name: research_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: research_logs
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Your Research Agent (The Backend/Frontend)
   research-agent:
     build: .
+    container_name: research_app
+    depends_on:
+      - db
     ports:
       - "8501:8501"
     environment:
-      - API_BASE_URL=http://localhost:8000 # Or public IP for mobile testing
+      - API_BASE_URL=http://localhost:8000
+      - DATABASE_URL=postgresql://user:password@db:5432/research_logs
     env_file:
       - .env
     volumes:
-      - ./backend/chat_history.db:/app/backend/chat_history.db
+      # We keep the Vector store volumes, but remove the .db file mount
       - ./vector_index.faiss:/app/vector_index.faiss
       - ./vector_data.pkl:/app/vector_data.pkl
+
+volumes:
+  postgres_data:
