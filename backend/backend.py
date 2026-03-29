@@ -47,8 +47,16 @@ print(f" {C_GREEN}>> [INIT] Environment variables loaded successfully.{C_RESET}"
 # ------------------------------------------------------------------------------
 # SECTION 2: DATABASE SETUP (SQLite)
 # ------------------------------------------------------------------------------
-DATABASE_URL = "sqlite:///./chat_history.db?check_same_thread=False&timeout=20"
-engine = create_engine(DATABASE_URL)
+# Engineering Judgment: Priority is given to DATABASE_URL (Docker/AWS)
+# with a fallback to local SQLite for development consistency.
+DEFAULT_SQLITE_URL = "sqlite:///./chat_history.db?check_same_thread=False&timeout=20"
+DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_SQLITE_URL)
+
+# PostgreSQL requires different connection arguments than SQLite.
+# We check the URL prefix to apply the correct configuration.
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
