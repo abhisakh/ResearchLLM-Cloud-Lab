@@ -1,14 +1,16 @@
 <div align="center">
 
 # 🔬 Advanced Multi-Agent Research Framework (GenAI)
-## 🧠 Declarative Research Agent & LLMOps Pipeline
+## 🧠 AWS-Ready LLMOps Pipeline with LangGraph & PostgreSQL
 
-[![LLMOps CI/CD Quality Gate](https://github.com/abhisakh/ResearchLLM_MultiAgent_LangGraph_RagGraph/actions/workflows/llmops_ci.yml/badge.svg)](https://github.com/abhisakh/ResearchLLM_MultiAgent_LangGraph_RagGraph/actions)
+[![LLMOps CI/CD Quality Gate](https://github.com/abhisakh/ResearchLLM-Cloud-Lab/actions/workflows/llmops_ci.yml/badge.svg)](https://github.com/abhisakh/ResearchLLM-Cloud-Lab/actions)
 ![Python Version](https://img.shields.io/badge/python-3.12-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Agent Framework](https://img.shields.io/badge/Orchestration-LangGraph-orange.svg)
+![Database](https://img.shields.io/badge/database-PostgreSQL_15-316192.svg)
+![Cloud](https://img.shields.io/badge/cloud-AWS_Ready-FF9900.svg)
 
-**Autonomous AI agent for scientific literature discovery with automated reasoning audits.**
+**An autonomous AI research engine designed for scientific discovery, featuring a decoupled microservices architecture optimized for AWS Cloud environments.**
 </div>
 
 ## In SCOPE QUERY
@@ -44,9 +46,14 @@
   - [Bridging the Gap Between AI and Scientific Rigor](#bridging)
   - [Project Highlights](#project)
   - [Architecture & Technical Core](#core)
+- [Cloud-Native Architecture](#cloud-native)
+  - [Key AWS Migration Features](#aws-features)
 - [Architecture Overview](#architecture-overview)
   - [Tech Stack](#tech)
 - [Installation and Setup](#installation)
+  - [Quick Start: Local AWS Simulation (Docker Compose)](#installation)
+  - [AWS Production Deployment Path](#aws-production)
+  - [Infrastructure & Networking](#networking)
 - [LLMOps & Modern CI/CD Engineering](#ci-cd-engineering)
   - [The Automation Core](#automation)
   - [Strategic Quality Gates](#gates)
@@ -106,6 +113,7 @@
   - [Backend Feature: The Audit Endpoint](#backend-Feature)
   - [Frontend Feature: The Observability Console](#frontend-Feature)
   - [Debug Console Use Cases](#debug-console)
+- [Roadmap & Next Steps](#roadmap)
 
 
 ---
@@ -136,17 +144,60 @@ While standard Google searches yield unverified web results and general LLMs pro
 - <mark>Multi-Agent Orchestration:</mark> Decomposes complex research into specialized roles—Intent, Query Generation, RAG, and Evaluation—coordinated through a structured, controllable LangGraph workflow.
 
 ---
+<a id="cloud-native"></a>
+# 🏗️ Cloud-Native Architecture
+<-- [Back](#table)
+
+This framework has been re-engineered from a monolithic script into a **containerized microservices stack**. The transition from SQLite to PostgreSQL ensures the system is ready for **AWS RDS or Aurora**, while the Docker orchestration mirrors an **AWS ECS (Elastic Container Service)** environment — making local development an accurate simulation of production.
+
+<a id="aws-features"></a>
+## 🛰️ Key AWS Migration Features
+
+- **Stateless Logic:** Backend and Frontend are fully decoupled. Session state and research "traces" are persisted in a centralized PostgreSQL instance, meaning any container can be replaced or scaled without data loss.
+- **Service Discovery:** Uses Docker-internal DNS (`http://backend:8000`), which maps directly to AWS Cloud Map or ALB (Application Load Balancer) target groups in production.
+- **Scalability:** The architecture supports horizontal scaling — multiple `research-backend` containers can run behind a load balancer, all sharing the same PostgreSQL cluster.
+
+```mermaid
+graph TD
+    subgraph AWS_Cloud [AWS Cloud Environment]
+        LB[Load Balancer / ALB] --> FE[Frontend Container<br/><i>ECS Fargate</i>]
+        FE --> BE[Backend Container<br/><i>ECS Fargate</i>]
+        BE --> RDS[(AWS RDS PostgreSQL)]
+        BE --> S3[[S3 / FAISS Vector Data<br/><i>or AWS OpenSearch</i>]]
+    end
+
+    style AWS_Cloud fill:#fff3e0,stroke:#FF9900,stroke-width:2px
+    style LB fill:#FF9900,color:#fff
+    style RDS fill:#316192,color:#fff
+    style S3 fill:#569A31,color:#fff
+```
+
+---
 # Architecture Overview
 
-This system consists of three major layers:
+This system consists of four major layers:
 
-1. **Frontend Layer** - Streamlit-based UI with fixed layout architecture
-2. **Backend Layer** - FastAPI gateway managing state and persistence
-3. **Agent Layer** - LangGraph-orchestrated multi-agent research pipeline
+1. **Infrastructure Layer** - Docker Compose orchestrating PostgreSQL, backend, and frontend containers within a private network
+2. **Frontend Layer** - Streamlit-based UI with fixed layout architecture
+3. **Backend Layer** - FastAPI gateway managing state and persistence (PostgreSQL via SQLAlchemy)
+4. **Agent Layer** - LangGraph-orchestrated multi-agent research pipeline
 ---
 <a id ="tech"></a>
-# Tech Stack
+# 🛠️ Tech Stack
 <img width="1291" height="726" alt="Techstack" src="https://github.com/user-attachments/assets/5b555b58-3b82-4c59-ab1d-b812da5e8864" />
+
+| Layer | Technology | AWS Equivalent |
+|---|---|---|
+| **Agent Orchestration** | [LangGraph](https://github.com/langchain-ai/langgraph) | — |
+| **Backend Framework** | FastAPI (served via Uvicorn) | ECS Fargate Task |
+| **Frontend Framework** | Streamlit | ECS Fargate Task |
+| **Database** | PostgreSQL 15 (managed via SQLAlchemy) | AWS RDS / Aurora |
+| **Containerization** | Docker & Docker Compose | AWS ECS / Fargate |
+| **Vector DB** | FAISS (Hierarchical Navigable Small World) | AWS OpenSearch / EFS |
+| **LLM** | OpenAI GPT-4o / GPT-4-turbo | — |
+| **Reranking** | Cross-Encoder Reranker | — |
+| **CI/CD** | GitHub Actions (LLMOps Quality Gate) | AWS CodePipeline |
+| **Secrets** | `.env` file (local) | AWS Secrets Manager |
 
 <-- [Back](#table)
 
@@ -155,6 +206,74 @@ This system consists of three major layers:
 <a id ="installation"></a>
 # Installation and Setup
 <-- [Back](#table)
+
+## 🚀 Quick Start: Local AWS Simulation (Docker Compose)
+
+Before pushing to AWS, simulate the full production environment locally. The Docker Compose stack is architecturally equivalent to an ECS deployment — same networking model, same service boundaries, same environment injection.
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/abhisakh/ResearchLLM-Cloud-Lab.git
+cd ResearchLLM-Cloud-Lab
+
+# 2. Configure your environment variables
+# Create a .env file in the root directory with the following keys:
+# MP_API_KEY='.................'
+# GPT_API_KEY='................'
+# S2_API_KEY='.................'
+
+# 3. Launch the AWS-equivalent stack
+docker-compose up --build
+```
+
+**Access Points:**
+- 🖥️ **Frontend Dashboard:** `http://localhost:8501`
+- ⚙️ **API Documentation (Swagger):** `http://localhost:8000/docs`
+- 🗄️ **Database:** `localhost:5432`
+
+> **Note:** Upon every `docker-compose up`, the system verifies the PostgreSQL schema. The vector database is initialized with a reset signal to ensure index consistency during development.
+
+---
+
+<a id="aws-production"></a>
+## ☁️ AWS Production Deployment Path
+
+The system is designed for a direct lift-and-shift to AWS. The local Docker Compose services map 1-to-1 to the following managed AWS services:
+
+| Local (Docker Compose) | AWS Production |
+|---|---|
+| `db` container (PostgreSQL) | **AWS RDS** (PostgreSQL) or **Aurora Serverless** |
+| `backend` container (FastAPI) | **AWS ECS Fargate** task |
+| `frontend` container (Streamlit) | **AWS ECS Fargate** task |
+| Docker Hub / local image | **AWS ECR** (Elastic Container Registry) |
+| `.env` file secrets | **AWS Secrets Manager** |
+| `postgres_data` Docker Volume | **RDS Persistent Storage** (managed) |
+
+**Deployment sequence:**
+1. **AWS ECR** — Push the Backend and Frontend Docker images to a private registry.
+2. **AWS ECS (Fargate)** — Define task definitions for each container; run serverless with no EC2 management.
+3. **AWS RDS (PostgreSQL)** — Replace the `db` container with a managed RDS instance; update `DATABASE_URL` in Secrets Manager.
+4. **AWS Secrets Manager** — Inject `OPENAI_API_KEY`, `MP_API_KEY`, and `S2_API_KEY` securely into ECS task definitions.
+
+---
+
+<a id="networking"></a>
+## 🌐 Infrastructure & Networking
+
+This project implements **Service Discovery** within a private Docker network, enabling seamless container-to-container communication without exposing internal services to the host machine. This pattern maps directly to AWS VPC private subnets in production.
+
+- **Internal Communication:** The Frontend identifies the Backend using the Docker hostname `http://backend:8000`, keeping inter-service traffic on the private network — equivalent to an AWS ALB (Application Load Balancer) target group routing in ECS.
+- **Universal API Switch:** The application uses environment-aware logic to switch automatically between Docker and AWS environments:
+
+```python
+# Automatically resolves 'backend' inside Docker/ECS, or 'localhost' on Mac
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+```
+
+- **Data Persistence:** Database state is preserved across container restarts using a Docker Volume (`postgres_data`), so your chat history and research sessions survive a `docker-compose down`. In AWS, this is replaced by RDS managed storage.
+- **Agent Trace Observability:** The system captures high-fidelity "Research States" as JSONB in PostgreSQL. Users can inspect the raw JSON trace of every agent node via the Debug State page, enabling a full audit of the AI's reasoning path — equivalent to AWS CloudWatch structured log insights.
+
+---
 
 ## 📁 File and Folder Structure
 
@@ -221,7 +340,6 @@ Contains the ***FastAPI-based backend*** responsible for agent orchestration, re
 ---
 
 **Persistent files**
-- chat_history.db — conversation memory (SQLite)
 - vector_index.faiss / vector_data.pkl — persisted vector embeddings
 
 ---
@@ -243,112 +361,13 @@ Isolated workspace for:
 
 ---
 
-## ⚙️ Installation & Setup
-#### 1️⃣ Clone the repository
-```python
-git clone https://github.com/abhisakh/ResearchLLM_MultiAgent_LangGraph_RagGraph.git
-cd Final_Modular_ResearchLLM
-```
+## ⚙️ Environment Variables
 
-#### 2️⃣ Create and activate a virtual environment at the root directory
-***macOS / Linux***
-```python
-python3 -m venv .venv
-source .venv/bin/activate
-```
-***#(Windows)***
-```python
-.venv\Scripts\activate
-```
-## 📦 Installing Dependencies
-All required Python packages are listed in requirements.txt.
-Install them using:
+The following API keys are required in your `.env` file:
 
-```python
-pip install -r requirements.txt
-```
-This ensures consistent dependency versions across development and deployment environments.
-## Create a .env file
-Inside the root directory creat a '.env' and provide the following informations
-```python
-MP_API_KEY='.................'
-GPT_API_KEY='................'
-S2_API_KEY='.................'
-```
-- KEY for [Material-Projects](https://next-gen.materialsproject.org/api)
-- KEY for [Open-AI](https://openai.com/api/)
-- KEY for [Schemantic-scholer](https://www.semanticscholar.org/product/api)
-
-## 🚀 Running the Application
-This project consists of two independently managed components: a backend API and a frontend UI.
-
-### 🔹 Backend (FastAPI + Uvicorn)
-The backend exposes the research system, agent orchestration, vector database, and LLM logic via a FastAPI application.
-Run the backend using:
-```python
-cd backend
-uvicorn backend:app --reload
-```
-
-The API will be available at:
-[http://127.0.0.1:8000](http://127.0.0.1:8000)
-
-Swagger documentation:
-[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-
-⚠️ Do not run the backend using python backend.py.
-FastAPI requires an ASGI server (Uvicorn) to manage its lifecycle.
-
-### 🔹 Frontend (Streamlit UI)
-
-The frontend provides an interactive user interface for the research system.
-
-Run the frontend using:
-```python
-cd frontend
-streamlit run ui_main.py
-```
-
-The UI will open automatically in the browser at:
-[http://localhost:8501](http://localhost:8501/)
-
-⚠️ Do not run the frontend using python ui_main.py.
-Streamlit requires its own runtime to manage sessions and UI state.
-
-## 🧠 Design Rationale: Python, Uvicorn, and Streamlit
-
-Although the entire project is written in Python, different components are executed using specialized runtimes to ensure correctness, scalability, and clarity of responsibility.
-
-### 🔹 Python (Core Language)
-
-- Used to implement:
-  - LLM agents
-  - Research logic
-  - Vector database handling
-  - State management
-
-- Python provides the shared foundation across backend and frontend.
-
-### 🔹 Uvicorn (Backend Runtime)
-
-Acts as an ASGI server for FastAPI
-Responsible for:
-- Managing the API lifecycle
-- Handling concurrent requests
-- Executing startup and shutdown events
-- Enables scalable and asynchronous backend execution.
-
-### 🔹 Streamlit (Frontend Runtime)
-
-Provides a managed UI runtime
-Responsible for:
-- Rendering the user interface
-- Handling session state
-- Rerunning Python code on user interaction
-- Simplifies rapid prototyping and interaction with the backend API.
-
-***Key idea:***
-Python defines what the system does, while Uvicorn and Streamlit define how and when that Python code runs.
+- `MP_API_KEY` — [Materials Project](https://next-gen.materialsproject.org/api)
+- `GPT_API_KEY` — [OpenAI](https://openai.com/api/)
+- `S2_API_KEY` — [Semantic Scholar](https://www.semanticscholar.org/product/api)
 
 ---
 <a id="ci-cd-engineering"></a>
@@ -451,11 +470,11 @@ The frontend communicates with the backend via a dedicated internal Docker bridg
 
 <a id="production"></a>
 ### 3. Why: The "Production-Ready" Advantage
-Environment Parity: Eliminates "It works on my machine." The code runs identically on a developer's Mac, a Linux CI/CD runner, and an AWS Production instance.
+**Environment Parity:** Eliminates "It works on my machine." The code runs identically on a developer's Mac, a Linux CI/CD runner, and an AWS Production ECS instance.
 
-***Agentic Continuity (Persistence):*** By using Docker Volumes, the AI's memory (chat_history.db) and the Vector Knowledge Base (vector_index.faiss) persist even if a container is restarted or updated.
+***Agentic Continuity (Persistence):*** By using Docker Volumes and PostgreSQL, the AI's session memory and research traces persist even if a container is restarted or updated. In AWS, this durability is guaranteed by RDS.
 
-***Cloud-Native Readiness:*** This setup is the direct precursor to Kubernetes (K8s). It proves the system is ready for high-availability clusters where thousands of real interactions occur simultaneously.
+***Cloud-Native Readiness:*** This setup is the direct precursor to AWS ECS / Fargate. It proves the system is ready for high-availability clusters where thousands of real interactions occur simultaneously.
 
 ---
 
@@ -3709,7 +3728,7 @@ graph TD
     end
 
     subgraph Online_Logic [Online: Live Path Overlay]
-        DB[(chat_history.db)] -->|Session ID| Fetch[Extract raw_data & visited_nodes]
+        DB[(PostgreSQL)] -->|Session ID| Fetch[Extract raw_data & visited_nodes]
         Fetch --> Path[Identify Activated Agents]
     end
 
@@ -3731,24 +3750,33 @@ graph TD
 ```mermaid
 graph TD
     User((User)) --> API[GET /list-sessions]
-    API --> DB[(SQLite DB)]
+    API --> DB[(PostgreSQL)]
     DB --> Distinct[Query Distinct session_id]
 
-    subgraph Loop [For each Session]
-        Distinct --> Latest[Find latest message by timestamp]
-        Latest --> Meta[Extract snippet & last_ts]
+    subgraph Trace_Inspection [Observability]
+        Distinct --> Raw[Fetch raw_state JSONB]
+        Raw --> Latest[Find latest message by timestamp]
+        Latest --> UI[Render Debug Trace]
     end
 
-    Meta --> List[JSON Session List]
+    UI --> List[JSON Session List]
     List --> User
 
-    style DB fill:#f5f5f5,stroke:#333
+    style DB fill:#316192,color:#fff,stroke:#333
     style API fill:#00c853,color:#fff
+    style Trace_Inspection fill:#fff3e0,stroke:#FF9900
 ```
 
 ---
 
+<a id="roadmap"></a>
+# 🗺️ Roadmap & Next Steps
+<-- [Back](#table)
 
+This project is actively evolving toward a fully managed cloud deployment. The following items represent the next milestones on the path to production-grade AWS infrastructure.
 
-
+- [ ] **AWS CDK / Terraform** — Implement Infrastructure-as-Code scripts for automated, repeatable provisioning of ECS, RDS, ECR, and Secrets Manager resources.
+- [ ] **AWS OpenSearch** — Transition the FAISS vector index to AWS OpenSearch Service for distributed, persistent, and scalable vector search across multiple backend instances.
+- [ ] **AWS CodePipeline** — Replace GitHub Actions with a native AWS CI/CD pipeline for seamless integration with ECR image builds and ECS rolling deployments.
+- [ ] **Streaming Responses** — Implement Server-Sent Events (SSE) on the FastAPI backend to stream agent reasoning tokens to the frontend in real time.
 
