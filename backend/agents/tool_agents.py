@@ -447,7 +447,7 @@ class MaterialsAgent(BaseToolAgent):
             band_gap_str = fr"${band_gap_val}\ \text{{eV}}$" if band_gap_val is not None else "Metallic/Unknown"
 
             energy_above_hull_val = result['energy_above_hull']
-            energy_above_hull_str = f"${energy_above_hull_val}\ \text{{eV}}$" if energy_above_hull_val is not None else "N/A"
+            energy_above_hull_str = f"${energy_above_hull_val}\\text{{eV}}$" if energy_above_hull_val is not None else "N/A"
 
             text_content = (
                 f"Material: {result['formula']} ({result['material_id']}). "
