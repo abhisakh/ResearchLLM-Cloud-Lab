@@ -349,31 +349,71 @@ async def list_sessions():
 #--------------------------------------------------------------------
 #---------------------- FOR AI TRANSPERANCY--------------------------
 #--------------------------------------------------------------------
+# @app.get("/debug/raw-state/{message_id}")
+# async def get_raw_state(message_id: str):
+#     db = SessionLocal()
+#     try:
+#         log = db.query(ChatLog).filter(ChatLog.id == message_id).first()
+
+#         if not log:
+#             raise HTTPException(status_code=404, detail="Message not found")
+
+#         if not log.raw_data:
+#             return {"raw_data": None}
+
+#         try:
+#             parsed = json.loads(log.raw_data)
+#         except:
+#             parsed = log.raw_data
+
+#         return {
+#             "id": log.id,
+#             "session_id": log.session_id,
+#             "raw_state": parsed
+#         }
+
+#     finally:
+#         db.close()
+
+
 @app.get("/debug/raw-state/{message_id}")
 async def get_raw_state(message_id: str):
     db = SessionLocal()
+    # 1. Clean the ID (remove any accidental whitespace from the frontend)
+    clean_id = str(message_id).strip()
+
     try:
-        log = db.query(ChatLog).filter(ChatLog.id == message_id).first()
+        # 2. Explicitly query using the cleaned string
+        log = db.query(ChatLog).filter(ChatLog.id == clean_id).first()
 
         if not log:
-            raise HTTPException(status_code=404, detail="Message not found")
+            print(f" {C_RED}>> [DEBUG FAIL] ID {clean_id} not found in Postgres.{C_RESET}")
+            raise HTTPException(status_code=404, detail="Message ID not found.")
 
-        if not log.raw_data:
-            return {"raw_data": None}
+        # 3. Handle the 'Big Data' Parsing
+        raw_payload = log.raw_data
 
-        try:
-            parsed = json.loads(log.raw_data)
-        except:
-            parsed = log.raw_data
+        # If Postgres returned a string, we MUST parse it back to JSON for FastAPI
+        if isinstance(raw_payload, str) and raw_payload:
+            try:
+                # This handles cases where Postgres escapes the JSON
+                raw_payload = json.loads(raw_payload)
+            except json.JSONDecodeError:
+                # If it's already a clean string that isn't JSON-formatted
+                pass
 
         return {
             "id": log.id,
             "session_id": log.session_id,
-            "raw_state": parsed
+            "raw_state": raw_payload
         }
-
+    except Exception as e:
+        print(f" {C_RED}>> [DEBUG CRASH] {str(e)}{C_RESET}")
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         db.close()
+
+
 
 # import os
 # import datetime

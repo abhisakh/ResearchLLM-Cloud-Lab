@@ -1,7 +1,61 @@
-#version: '3.8'
+# #version: '3.8'
+
+# services:
+#   # New Database Service (The "Postgres" Requirement)
+#   db:
+#     image: postgres:15-alpine
+#     container_name: research_db
+#     restart: always
+#     environment:
+#       POSTGRES_USER: user
+#       POSTGRES_PASSWORD: password
+#       POSTGRES_DB: research_logs
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+
+#   # SERVICE 1: The API Engine (FastAPI)
+#   backend:
+#     build: .
+#     container_name: research_backend
+#     depends_on:
+#       - db
+#     # We run from /app so it finds 'backend.backend'
+#     # But we add /app/backend to the PATH so 'core' is visible
+#     command: uvicorn backend.backend:app --host 0.0.0.0 --port 8000
+#     ports:
+#       - "8000:8000"
+#     environment:
+#       - DATABASE_URL=postgresql://user:password@db:5432/research_logs
+#       - PYTHONPATH=/app:/app/backend  # <--- This is the magic fix
+#     env_file:
+#       - .env
+
+#   # SERVICE 2: The User Interface (Streamlit)
+#   frontend:
+#     build: .
+#     container_name: research_frontend
+#     depends_on:
+#       - backend
+#     # This service uses the default CMD from the Dockerfile
+#     ports:
+#       - "8501:8501"
+#     environment:
+#       - API_BASE_URL=http://backend:8000 # Internal Docker networking
+#     env_file:
+#       - .env
+#     volumes:
+#       # We keep the Vector store volumes, but remove the .db file mount
+#       - ./vector_index.faiss:/app/vector_index.faiss
+#       - ./vector_data.pkl:/app/vector_data.pkl
+
+# volumes:
+#   postgres_data:
+
+version: '3.8'
 
 services:
-  # New Database Service (The "Postgres" Requirement)
   db:
     image: postgres:15-alpine
     container_name: research_db
@@ -15,38 +69,39 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # SERVICE 1: The API Engine (FastAPI)
   backend:
     build: .
     container_name: research_backend
     depends_on:
       - db
-    # We run from /app so it finds 'backend.backend'
-    # But we add /app/backend to the PATH so 'core' is visible
+    # Run the FastAPI app
     command: uvicorn backend.backend:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/research_logs
-      - PYTHONPATH=/app:/app/backend  # <--- This is the magic fix
+      - PYTHONPATH=/app:/app/backend
     env_file:
       - .env
+    volumes:
+      - .:/app # Syncs your local code so changes reflect immediately
 
-  # SERVICE 2: The User Interface (Streamlit)
   frontend:
     build: .
     container_name: research_frontend
     depends_on:
       - backend
-    # This service uses the default CMD from the Dockerfile
+    # Explicitly run Streamlit from the frontend folder
+    command: streamlit run frontend/ui_main.py --server.port=8501 --server.address=0.0.0.0
     ports:
       - "8501:8501"
     environment:
-      - API_BASE_URL=http://backend:8000 # Internal Docker networking
+      - API_BASE_URL=http://backend:8000
+      - PYTHONPATH=/app
     env_file:
       - .env
     volumes:
-      # We keep the Vector store volumes, but remove the .db file mount
+      - .:/app # Critical: Ensures the 'pages/' folder is visible inside the container
       - ./vector_index.faiss:/app/vector_index.faiss
       - ./vector_data.pkl:/app/vector_data.pkl
 
